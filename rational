@@ -1,0 +1,729 @@
+#include<vector>
+#include<iostream>
+#include<string>
+#define $$ std::cout << "------------\n";
+//#define print(s) std::cout << "print:\n  ";for(auto qwe:s) std::cout << qwe << ' '; std::cout << '\n';
+class BigInteger{
+    private:
+        std::vector<int> deg;
+        int sign = 1;
+        int size(){
+            return static_cast<int>(deg.size());
+        }
+        void Normalize(){
+            //print(deg)
+            int more = 0;
+            for(size_t i = 0; i < deg.size(); ++i){
+                deg[i] += more;
+                if (deg[i] >= 0) {
+                    more = deg[i] / 10;
+                }else{
+                    more = -1;
+                }
+                deg[i] = (deg[i] + 10) % 10;
+            }
+            while(more){
+                deg.push_back(more % 10);
+                more /= 10;
+            }
+            while(deg.size() > 1 && deg.back() == 0){
+                deg.pop_back();
+            }
+            if(!*this){
+                sign = 1;
+            }
+        }
+        void reverse(){
+            for(size_t i = 0; i < deg.size() / 2; ++i){
+                std::swap(deg[i], deg[deg.size() - i - 1]);
+            }
+        }
+
+
+    public:
+        BigInteger(const BigInteger &other){
+            sign = other.sign;
+            deg.resize(other.deg.size());
+            for(size_t i = 0; i < other.deg.size(); ++i){
+                deg[i] = other.deg[i];
+            }
+        }
+        BigInteger(const std::string &s){
+            size_t i = 0;
+            if(s[i] == '-'){
+                sign = -1;
+                i++;
+            }else{
+                sign = 1;
+            }
+            deg.resize(s.size() - i);
+            for(; i < s.size(); ++i){
+                 //   std::cout << i << ' ' << s.size() - i - 1 << '\n';
+                int ch = sign == -1 ? s[s.size() - i] : s[s.size() - i - 1];
+                if(sign == -1){
+                    deg[i - 1] = ch - '0';
+                }else{
+                    deg[i] = ch - '0';
+                }
+            }
+            //std::cout << "*********\n" << s << '\n';
+            //for(auto i: deg) std::cout << i << ' ';
+            //std::cout << '\n';
+        }
+        BigInteger(){
+            sign = 1;
+            deg = {0};
+        }
+        BigInteger(int num){
+            //std::cout << "******\n";
+            //std::cout << sign << ' ' << deg.size() << '\n';
+            if(num < 0){
+                sign = -1;
+                num *= -1;
+            }else{
+                sign = 1;
+            }
+            while(num){
+                int rem = num % 10;
+                num /= 10;
+                deg.push_back(rem);
+            }
+            if(deg.empty()){
+                deg = {0};
+            }
+            //std::cout << sign << ' ' << deg.size() << ' ' << deg[0] <<  '\n';
+          // std:: cout << "wqeqweqweqw\n";
+        }
+        BigInteger(int k, int degree){
+            //std::cout << "qweqwrt\n";
+            deg.assign(degree, 0);
+           // std::cout << k << ' ' << degree << '\n';
+            deg[deg.size() - 1] = k;
+            //$$
+        }
+        std::string toString() const {
+           // print(deg)
+            std::string number = "";
+            if(sign == -1){
+                number += "-";
+            }
+            for(int i = static_cast<int>(deg.size()) - 1; i >= 0; --i){
+                number += char('0' + deg[i]);
+                if(i == 0){
+                    break;
+                }
+            }
+            return number;
+        }
+        friend std::istream& operator>>(std::istream &in, BigInteger &self){
+            std::string input;
+            in >> input;
+            self = BigInteger(input);
+            return in;
+        }
+        friend std::ostream& operator<<(std::ostream &out, const BigInteger& P){
+            //print(P.toString());
+            out << P.toString();
+            return out;
+        }
+        /*std::string toString(BigInteger &other) const {
+            std::string number = "";
+            if(other.sign == -1){
+                number += "-";
+            }
+            for(size_t i = other.deg.size() - 1; i > -1; --i){
+                number += char('0' + deg[i]);
+            }
+            return number;
+        }*/
+        BigInteger& operator*=(int mul){
+            //if(mul < 0){
+              //  sign *= -1;
+               // mul *= -1;
+            //}
+           // std::cout << "000000000000\n";
+            //for(int i = 0; i < deg.size(); ++i){
+             //       std::cout << deg[i] << '\n';
+             //   deg[i] *= mul;
+           // std::cout << deg[i] << '\n';
+            //}
+            //std::cout << "***********   " << *this << '\n';
+            *this *= BigInteger(mul);
+            return *this;
+        }
+        BigInteger operator -() const {
+            BigInteger ans = *this;
+            ans.sign *= -1;
+            //sign *= -1;
+            return ans;
+        }
+        BigInteger& operator +=(const BigInteger &other){
+            if(sign != other.sign){
+                sign *= -1;
+                *this -= other;
+                sign *= -1;
+                Normalize();
+                return *this;
+            }
+            const size_t min_size = std::min(deg.size(), other.deg.size());
+            for(size_t i = 0; i < min_size; ++i){
+                deg[i] += other.deg[i];
+            }
+            for(size_t i = min_size; i < other.deg.size(); ++i) {
+                deg.push_back(other.deg[i]);
+            }
+            Normalize();
+            return *this;
+        }
+        BigInteger& operator -=(const BigInteger &other){
+            //$$
+            //print(deg)
+            //print(other.deg)
+        //    std::cout << "  " << sign << ' ' << other.sign << ' ' << *this << ' ' << other << ' ' << (*this < other) << '\n';
+            if(sign != other.sign){
+                sign *= -1;
+                *this += other;
+                sign *= -1;
+                Normalize();
+                return *this;
+            }
+            size_t min_size = std::min(deg.size(), other.deg.size());
+            if(SmallerMod(*this, other)){
+                int more = 0;
+                for(size_t i = 0; i < min_size; ++i){
+                    if (deg[i] + more <= other.deg[i]) {
+                        deg[i] = other.deg[i] - deg[i] - more;
+                        more = 0;
+                    }else{
+                        deg[i] = other.deg[i] - deg[i] - more + 10;
+                        more = 1;
+                    }
+                }
+               // std::cout << "qwerty\n";
+                //print(deg);
+                for(size_t i = min_size; i < other.deg.size(); ++i){
+                    deg.push_back(other.deg[i] - more);
+                    more = 0;
+                }
+                sign *= -1;
+            }else{
+                for(size_t i = 0; i < min_size; ++i){
+                    deg[i] -= other.deg[i];
+                }
+            }
+            //print(deg)
+            Normalize();
+            //std::cout << "0000000\n";
+            //print(deg)
+            return *this;
+    }
+        void operator +=(int add){
+
+            *this += BigInteger(add);
+        }
+        void operator -=(int ded){
+            *this -= BigInteger(ded);
+        }
+        BigInteger operator +(const BigInteger &other) const {
+            BigInteger result = *this;
+            result += other;
+            return result;
+        }
+        BigInteger operator -(const BigInteger &other) const {
+            BigInteger result = *this;
+            result -= other;
+            return result;
+        }
+        bool operator ==(const BigInteger &other) const {
+            return other.toString() == toString();
+        }
+        bool operator !=(const BigInteger &other) const {
+            return !(*this == other);
+        }
+        bool operator <(const BigInteger &other) const {
+            if(sign < other.sign){
+                return true;
+            }else if(sign > other.sign){
+                return false;
+            }
+           // std::cout << "WWWWWWWWWW\n";
+            //std::cout << SmallerMod(*this, other) << ' ' << sign << ' ' << *this << ' ' << other.sign << ' ' << other << '\n';
+            return SmallerMod(*this, other) ^ (sign == 1) ^ 1;
+        }
+        bool operator >(const BigInteger &other) const {
+            return (other < *this);
+        }
+        bool operator >=(const BigInteger &other) const {
+            return (*this > other) || (*this == other);
+        }
+        bool operator <=(const BigInteger &other) const {
+            return (*this < other) || (*this == other);
+        }
+        BigInteger& operator =(const BigInteger& other){
+            sign = other.sign;
+            deg = other.deg;
+            return *this;
+        }
+        BigInteger& operator =(const int other){
+            *this = BigInteger(other);
+            return *this;
+        }
+        BigInteger operator +(const int add) const {
+            return *this + BigInteger(add);
+        }
+        BigInteger operator -(const int ded) const {
+            return *this - BigInteger(ded);
+        }
+        BigInteger operator *(const int other) const {
+            return *this * BigInteger(other);
+        }
+        bool operator ==(const int other) const {
+            return *this == BigInteger(other);
+        }
+        bool operator !=(const int other) const {
+            return *this != BigInteger(other);
+        }
+        bool operator <(const int other) const {
+            return *this < BigInteger(other);
+        }
+        bool operator <=(const int other) const {
+            return *this <= BigInteger(other);
+        }
+        bool operator >(const int other) const {
+            return *this > BigInteger(other);
+        }
+        bool operator >=(const int other) const {
+            return *this >= BigInteger(other);
+        }
+        BigInteger& operator++(){
+            *this += 1;
+            return *this;
+        }
+        BigInteger& operator--(){
+            *this -= 1;
+            return *this;
+        }
+        BigInteger operator++(int) {
+            BigInteger old = *this;
+            *this += 1;
+            return old;
+        }
+        BigInteger operator--(int) {
+            BigInteger old = *this;
+            *this -= 1;
+            return old;
+        }
+        friend BigInteger operator +(const int self, const BigInteger& other){
+            return BigInteger(self) + other;
+        }
+        friend BigInteger operator-(const int self, const BigInteger& other){
+            return BigInteger(self) - other;
+        }
+        friend BigInteger operator*(const int self, const BigInteger& other){
+           return BigInteger(self) * other;
+        }
+        friend BigInteger operator/(const int self, const BigInteger& other){
+            return BigInteger(self) / other;
+        }
+        friend BigInteger operator%(const int self, const BigInteger& other){
+            return BigInteger(self) % other;
+        }
+        operator bool() const {
+            return deg[0] || deg.size() > 1;
+        }
+        BigInteger operator *(const BigInteger &other) const {
+            BigInteger composition;
+            composition.deg.resize(deg.size() + other.deg.size());
+            for(size_t i = 0; i < deg.size(); ++i){
+                for(size_t j = 0; j < other.deg.size(); ++j){
+                    composition.deg[i + j] += deg[i] * other.deg[j];
+                }
+            }
+            composition.sign = sign * other.sign;
+            composition.Normalize();
+            return composition;
+        }
+        BigInteger& operator *=(const BigInteger &other){
+            *this = *this * other;
+            return *this;
+        }
+        /*BigInteger operator /(const BigInteger &other) const {
+            BigInteger A = *this, B = other;
+            A.sign = 1;
+            B.sign = 1;
+            BigInteger ans = 0;
+            ans.sign = sign * other.sign;
+            while(A.deg.size() >= B.deg.size()){
+               // std::cout << "   " << A.deg.back() << ' ' << B.deg.back() << std::endl;
+                BigInteger P = BigInteger((A.deg.back() + B.deg.back() - 1 + 1) / B.deg.back(), A.deg.size() - B.deg.size() + 1);
+                ans += P;
+                A -= P * B;
+            }
+            return ans;
+        }*/
+        BigInteger operator /(const BigInteger &other) const {
+            BigInteger result = *this;
+            result /= other;
+            return result;
+        }
+        BigInteger& operator %=(const BigInteger &other){
+            *this -= *this / other * other;
+            return *this;
+        }
+        BigInteger operator %(const BigInteger &other) const {
+            return *this - other * (*this / other);
+        }
+        BigInteger& operator /=(const BigInteger &other){
+         //   print(deg)
+           // print(other.deg)
+            if (SmallerMod(*this, other)){
+                *this = 0;
+                return *this;
+            }
+            sign *= other.sign;
+            reverse();
+            std::vector<int> new_deg;
+            BigInteger val = 0;
+            //$$
+            for(size_t i = 0; i < deg.size() + 1; ++i) {
+                //print(new_deg)
+                //std::cout << val << '\n';
+                new_deg.push_back(divide_two(val, other));
+                //std::cout << "  " << val << ' ' << new_deg.back() << '\n';
+                val -= other * new_deg.back();
+                if(i == deg.size()){
+                    break;
+                }
+                val *= 10;
+                val += deg[i];
+            }
+            deg = new_deg;
+            reverse();
+            Normalize();
+            return *this;
+        }
+        int divide_two(const BigInteger &self, const BigInteger &other) {
+            for(int i = 0; i < 10; ++i){
+                if (other * (i + 1) > self || -other * (i + 1) > self) {
+                    return i;
+                }
+            }
+            return 0;
+        }
+        BigInteger operator /(const int other) const {
+            return *this / BigInteger(other);
+        }
+        BigInteger& operator %=(const int other){
+            *this %= BigInteger(other);
+            return *this;
+        }
+        BigInteger operator %(const int other) const {
+            return *this % BigInteger(other);
+        }
+        BigInteger& operator /=(const int other){
+            *this /= BigInteger(other);
+            return *this;
+        }
+        void change_sign(){
+            sign *= -1;
+        }
+        int get_sign() const {
+            return sign;
+        }
+        friend bool SmallerMod(const BigInteger&, const BigInteger&);
+};
+
+template<typename T>
+T gcd(T a, T b){
+    while(b){
+        a = a % b;
+        std::swap(a, b);
+    }
+    return a;
+}
+bool SmallerMod(const BigInteger &self, const BigInteger &other){
+    if(self.deg.size() < other.deg.size()){
+        return 1;
+    }else if(self.deg.size() > other.deg.size()){
+        return 0;
+    }else{
+        for(int i = self.deg.size() - 1; i > -1; --i){
+            if(self.deg[i] < other.deg[i]){
+                return 1;
+            }else if(self.deg[i] > other.deg[i]){
+                return 0;
+            }
+        }
+        return 0;
+    }
+
+}
+
+class Rational{
+    private:
+        BigInteger num;
+        BigInteger den;
+        void make_irred(BigInteger &self, BigInteger &other){
+            BigInteger gcd_ = gcd(self, other);
+            self /= gcd_;
+            other /= gcd_;
+        }
+        void Normalize(){
+            if(den.get_sign() == -1){
+                num.change_sign();
+                den.change_sign();
+            }
+            make_irred(num, den);
+        }
+    public:
+        Rational(const BigInteger &other){
+            num = BigInteger(other);
+            den = BigInteger(1);
+        }
+        Rational(const int other){
+            num = BigInteger(other);
+            den = BigInteger(1);
+        }
+        Rational(){
+            num = 0;
+            den = 1;
+        }
+        Rational& operator +=(const Rational &other){
+            num *= other.den;
+            num += other.num * den;
+            den *= other.den;
+           // make_irred(num, den);
+            Normalize();
+            return *this;
+        }
+
+        Rational operator -() const {
+            Rational ans = *this;
+            ans.num *= -1;
+            return ans;
+        }
+        Rational& operator -=(const Rational &other){
+            *this += -other;
+            return *this;
+        }
+        Rational& operator *=(const Rational &other){
+            num *= other.num;
+            den *= other.den;
+           // make_irred(num, den);
+            Normalize();
+            return *this;
+        }
+        Rational& operator /=(const Rational &other){
+            num *= other.den;
+            den *= other.num;
+           // make_irred(num, den);
+            Normalize();
+            return *this;
+        }
+        Rational operator /(const Rational &other) const {
+            Rational ans = *this;
+            ans /= other;
+            return ans;
+        }
+        Rational& operator %=(const Rational &other){
+            *this = *this - *this / other * other;
+            return *this;
+        }
+        Rational operator %(const Rational &other) const {
+            Rational res = *this;
+            res %= other;
+            return res;
+        }
+        Rational operator *(const Rational &other) const {
+            Rational ans = *this;
+            ans *= other;
+            return ans;
+        }
+        Rational operator +(const Rational &other) const {
+            Rational ans = *this;
+            ans += other;
+            return ans;
+        }
+        Rational operator -(const Rational &other) const {
+            Rational ans = *this;
+            ans -= other;
+            return ans;
+        }
+        std::string toString() const {
+            std::string result = "";
+            if(num.get_sign() == -1){
+                result += '-';
+            }
+            result += num.toString();
+            if(den != 1){
+                result += '/';
+                result += den.toString();
+            }
+            return result;
+        }
+        friend std::istream& operator>>(std::istream &in, Rational& self){
+            std::string input1;
+            std::string input2;
+            in >> input1 >> input2;
+            self.num = BigInteger(input1);
+            self.den = BigInteger(input2);
+            self.Normalize();
+            return in;
+        }
+        friend std::ostream& operator<<(std::ostream &out, const Rational& P){
+            //print(P.toString());
+            out << P.toString();
+            return out;
+        }
+        bool SmallerMod2(const Rational &self, const Rational &other) const {
+            Rational q = self / other;
+           // $$
+            if(SmallerMod(q.num, q.den)){
+                return 1;
+            }
+            return 0;
+        }
+        bool operator ==(const Rational &other) const {
+            return toString() == other.toString();
+        }
+        bool operator <(const Rational &other) const {
+            bool smaller = SmallerMod2(*this, other);
+            if(num.get_sign() != other.num.get_sign()){
+                if(num.get_sign() == 1){
+                    return 0;
+
+                }else{
+                    return 1;
+                }
+            }
+            if(*this == other){
+                return 0;
+            }
+            if(num.get_sign() == 1){
+                return smaller;
+            }
+            return smaller ^ 1;
+        }
+        bool operator <=(const Rational &other) const {
+            return (*this < other) || (*this == other);
+        }
+        bool operator >(const Rational &other) const {
+            return other < *this;
+        }
+        bool operator >=(const Rational &other) const {
+            return (*this > other) || (*this == other);
+        }
+        bool operator !=(const Rational &other) const {
+            return !(*this == other);
+        }
+        Rational& operator =(const Rational &other){
+            num = other.num;
+            den = other.den;
+            return *this;
+        }
+
+/*        bool operator ==(const int &other) const {
+            return *this == Rational(other);
+        }
+        bool operator <(const int &other) const {
+            return *this < Rational(other);
+        }
+        bool operator <=(const int &other) const {
+            return *this <= Rational(other);
+        }
+        bool operator >(const int &other) const {
+            return *this > Rational(other);
+        }
+        bool operator >=(const int &other) const {
+            return *this >= Rational(other);
+        }
+        bool operator !=(const int &other) const {
+            return *this != Rational(other);
+        }
+
+         Rational& operator -=(const int other){
+            *this += -Rational(other);
+            return *this;
+        }
+        Rational& operator *=(const int other_){
+            Rational other = other_;
+            num *= other.num;
+            den *= other.den;
+           // make_irred(num, den);
+            Normalize();
+            return *this;
+        }
+        Rational& operator /=(const int other_){
+            Rational other = other_;
+            num *= other.den;
+            den *= other.num;
+           // make_irred(num, den);
+            Normalize();
+            return *this;
+        }
+        Rational operator /(const int other) const {
+            Rational ans = *this;
+            ans /= Rational(other);
+            return ans;
+        }
+        Rational& operator %=(const int other_){
+            Rational other = Rational(other_);
+            *this = *this - *this / other * other;
+            return *this;
+        }
+        Rational operator %(const int other) const {
+            Rational res = *this;
+            res %= Rational(other);
+            return res;
+        }
+        Rational operator *(const int other) const {
+            Rational ans = *this;
+            ans *= Rational(other);
+            return ans;
+        }
+        Rational operator +(const int other) const {
+            Rational ans = *this;
+            ans += Rational(other);
+            return ans;
+        }
+        Rational operator -(const int other) const {
+            Rational ans = *this;
+            ans -= Rational(other);
+            return ans;
+        }*/
+
+        friend Rational operator +(const int self, const Rational& other){
+            return Rational(self) + other;
+        }
+        friend Rational operator -(const int self, const Rational& other){
+            return Rational(self) - other;
+        }
+        friend Rational operator *(const int self, const Rational& other){
+           return Rational(self) * other;
+        }
+        friend Rational operator /(const int self, const Rational& other){
+            return Rational(self) / other;
+        }
+        friend Rational operator %(const int self, const Rational& other){
+            return Rational(self) % other;
+        }
+        explicit operator bool() const {
+            return num;
+        }
+        std::string asDecimal(size_t precision) const {
+            BigInteger A = num % den;
+            std::string ans = (num / den).toString();
+            ans += '.';
+            std::string degree = "1";
+            for(size_t i = 0; i < precision; ++i){
+                degree += '0';
+            }
+            std::cout << A << ' ' << den << ' ' << ans << '\n';
+            A *= BigInteger(degree);
+            ans += (A / den).toString();
+            return ans;
+        }
+        explicit operator double() const {
+            return std::stod(asDecimal(100));
+        }
+};
